@@ -7,3 +7,4 @@ Index will always start at 0
 Strip will remove the space before and after the variable
 IO validate is to validate your data
 Break will mean it will get out of that particular logic (settled because condition is met) then go to next logic
+Dont nest if else too deep, stop until children (Dont nest too much)
