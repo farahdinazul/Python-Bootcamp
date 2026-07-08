@@ -23,3 +23,4 @@ def means function (which means or refers to a formula)
 return will return result for the specific formula or logic
 so save the value of the formula in a variable print(resultofformula)
 Nanti go back to set and dictionaries 
+Read errors from bottom to top, but fix from top to bottom

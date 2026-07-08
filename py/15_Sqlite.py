@@ -8,18 +8,18 @@ class DatabaseManager:
     def init_database(self):
         """Initializes the database with tables."""
         with sqlite3.connect(self.db_name) as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor() #cursor is pointing at something in the database, it is used to execute SQL commands and queries
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
-                    age INTEGER NOT NULL
+                    age INTEGER NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
+
             cursor.execute('''
                CREATE TABLE IF NOT EXISTS posts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +45,31 @@ class DatabaseManager:
         except sqlite3.IntegrityError as e:
             print(f"Error: {e}")
             return None
-        
+
+    def update_user(self, user_id, name=None, email=None, age=None):
+        """Updates an existing user's information in the database."""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            updates = []
+            params = []
+
+            if name is not None:
+                updates.append("name = ?")
+                params.append(name)
+            if email is not None:
+                updates.append("email = ?")
+                params.append(email)
+            if age is not None:
+                updates.append("age = ?")
+                params.append(age)
+
+            if updates:
+                params.append(user_id)
+                sql = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+                cursor.execute(sql, params)
+                return cursor.rowcount
+            return None
+
     def create_post(self, user_id, title, content):
         """Creates a new post for a user in the database."""
         with sqlite3.connect(self.db_name) as conn:
@@ -55,7 +79,28 @@ class DatabaseManager:
                 VALUES (?, ?, ?)
             ''', (user_id, title, content))
             return cursor.lastrowid
-    
+
+    def update_post(self, post_id, title=None, content=None):
+        """Updates an existing post's information in the database."""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            updates = []
+            params = []
+
+            if title is not None:
+                updates.append("title = ?")
+                params.append(title)
+            if content is not None:
+                updates.append("content = ?")
+                params.append(content)
+
+            if updates:
+                params.append(post_id)
+                sql = f"UPDATE posts SET {', '.join(updates)} WHERE id = ?"
+                cursor.execute(sql, params)
+                return cursor.rowcount
+            return None
+
     #reading data using SELECT
     def get_all_users(self):
         """Retrieves all users from the database."""
@@ -92,11 +137,13 @@ def display_menu():
     print("Database Manager Menu")
     print("="*40)
     print("1. Create User")
-    print("2. View All Users")
-    print("3. Create Posts")
-    print("4. View User Posts")
-    print("5. Delete User")
-    print("6. Exit")
+    print("2. Update User")
+    print("3. View All Users")
+    print("4. Create Post")
+    print("5. Update Post")
+    print("6. View User Posts")
+    print("7. Delete User")
+    print("8. Exit")
     print("-"*40)
 
 def main():
@@ -105,7 +152,7 @@ def main():
 
     while True:
         display_menu()
-        choice = input("Enter your choice (1-6): ").strip()
+        choice = input("Enter your choice (1-8): ").strip()
 
         if choice == '1':
             print("\n---Create New User---")
@@ -120,8 +167,25 @@ def main():
                     print("Failed to create user. Email might already exist.")
             except ValueError:
                 print("Invalid age. Please enter a valid number.")
-           
+
         elif choice == '2':
+            print("\n---Update User---")
+            try:
+                user_id = int(input("Enter user ID to update: ").strip())
+                print("Leave a field blank to keep it unchanged.")
+                name = input("New name: ").strip() or None
+                email = input("New email: ").strip() or None
+                age_input = input("New age: ").strip()
+                age = int(age_input) if age_input else None
+                rows_changed = db.update_user(user_id, name=name, email=email, age=age)
+                if rows_changed:
+                    print(f"User {user_id} updated.")
+                else:
+                    print("No changes made or user not found.")
+            except ValueError:
+                print("Invalid user ID or age. Please enter a valid number.")
+
+        elif choice == '3':
             print("\n---All Users---")
             users = db.get_all_users()
             if users:
@@ -130,7 +194,7 @@ def main():
             else:
                 print("No users found.")
 
-        elif choice == '3':
+        elif choice == '4':
             print("\n---Create New Post---")
             try:
                 user_id = int(input("Enter user ID: ").strip())
@@ -143,9 +207,24 @@ def main():
                     print("Failed to create post.")
             except ValueError:
                 print("Invalid user ID. Please enter a valid number.")
-               
-        elif choice == '4':
-            print("\n---Create New Post---")
+
+        elif choice == '5':
+            print("\n---Update Post---")
+            try:
+                post_id = int(input("Enter post ID to update: ").strip())
+                print("Leave a field blank to keep it unchanged.")
+                title = input("New title: ").strip() or None
+                content = input("New content: ").strip() or None
+                rows_changed = db.update_post(post_id, title=title, content=content)
+                if rows_changed:
+                    print(f"Post {post_id} updated.")
+                else:
+                    print("No changes made or post not found.")
+            except ValueError:
+                print("Invalid post ID. Please enter a valid number.")
+
+        elif choice == '6':
+            print("\n---View User Posts---")
             try:
                 user_id = int(input("Enter user ID: ").strip())
                 posts = db.get_user_posts(user_id)
@@ -156,13 +235,13 @@ def main():
                         print(f"Content: {post[2]}")
                         print(f"Created At: {post[3]}")
                         print("-"*30)
-                           
+
                 else:
                     print("No posts found for this user.")
             except ValueError:
                 print("Invalid user ID. Please enter a valid number.")
 
-        elif choice == '5':
+        elif choice == '7':
             print("\n---Delete User---")
             try:
                 user_id = int(input("Enter user ID to delete: ").strip())
@@ -170,14 +249,14 @@ def main():
                 if confirm == 'yes':
                     if db.delete_user(user_id):
                         print(f"Deleted user and their posts.")
-                    else:  
+                    else:
                         print("No user found with that ID or deletion failed.")
                 else:
                     print("Deletion cancelled.")
             except ValueError:
                 print("Invalid user ID. Please enter a valid number.")
-            
-        elif choice == '6':
+
+        elif choice == '8':
             print("\nGoodbye!...")
             break
         else:
