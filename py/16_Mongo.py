@@ -59,6 +59,47 @@ class DatabaseManager:
             print(f"Error creating post: {e}")
             return None
     
+    def update_user(self, user_id, name=None, email=None, age=None):
+        """Update an existing user's details"""
+        try:
+            # Convert string user_id to ObjectId if it's a valid ObjectId
+            if ObjectId.is_valid(user_id):
+                user_object_id = ObjectId(user_id)
+            else:
+                user_object_id = user_id
+
+            # Only include fields the caller actually provided
+            update_fields = {}
+            if name:
+                update_fields["name"] = name
+            if email:
+                update_fields["email"] = email
+            if age is not None:
+                update_fields["age"] = age
+
+            if not update_fields:
+                print("No fields provided to update.")
+                return False
+
+            # If the email is changing, make sure no other user already has it
+            if email:
+                existing = self.users_collection.find_one({
+                    "email": email,
+                    "_id": {"$ne": user_object_id}
+                })
+                if existing:
+                    print(f"Error updating user: email '{email}' is already in use.")
+                    return False
+
+            result = self.users_collection.update_one(
+                {"_id": user_object_id},
+                {"$set": update_fields}
+            )
+            return result.matched_count > 0
+        except Exception as e:
+            print(f"Error updating user: {e}")
+            return False
+
     def get_all_users(self):
         """Get all users"""
         try:
@@ -123,7 +164,8 @@ def display_menu():
     print("3. Create Post")
     print("4. View User Posts")
     print("5. Delete User")
-    print("6. Exit")
+    print("6. Update User")
+    print("7. Exit")
     print("-"*40)
 
 def main():
@@ -138,7 +180,7 @@ def main():
     
     while True:
         display_menu()
-        choice = input("Enter your choice (1-6): ").strip()
+        choice = input("Enter your choice (1-7): ").strip()
 
         if choice == "1":
             print("\n---Create New User---")
@@ -205,14 +247,35 @@ def main():
                 print("Deletion cancelled.")
 
         elif choice == "6":
+            # Update User
+            print("\n---Update User---")
+            user_id = input("Enter user ID to update: ").strip()
+            print("Leave a field blank to keep it unchanged.")
+            name = input("Enter new name: ").strip()
+            email = input("Enter new email: ").strip()
+            age_input = input("Enter new age: ").strip()
+
+            age = None
+            if age_input:
+                try:
+                    age = int(age_input)
+                except ValueError:
+                    print("Invalid age. Age will not be updated.")
+
+            if db.update_user(user_id, name=name or None, email=email or None, age=age):
+                print("User updated successfully.")
+            else:
+                print("User not found or no changes made.")
+
+        elif choice == "7":
             # Exit
             print("\nClosing database connection...")
             db.close_connection()
             print("Exiting the program. Goodbye!")
             break
-        
+
         else:
-            print("Invalid choice. Please try again and enter 1-6.")
+            print("Invalid choice. Please try again and enter 1-7.")
         input("\nPress Enter to continue...")  # Pause before showing the menu again
 
 if __name__ == "__main__":

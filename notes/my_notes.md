@@ -24,3 +24,11 @@ return will return result for the specific formula or logic
 so save the value of the formula in a variable print(resultofformula)
 Nanti go back to set and dictionaries 
 Read errors from bottom to top, but fix from top to bottom
+List down table and columns for each table and brainstorm with AI on what you should remove or not. 
+Zarul will pick a function and we will need to explain the code.
+Frontend -UI, backend - logic codes
+API is just a link (endpoint)
+pass an endpoint in interface/frontend
+Fullstack - function backend - endpoint(bridge) - frontend
+uvicorn a library to test each endpoint (create, read and update, we dont test at terminal)
+Get all posts by specific user dh settle, esok buat yg get all posts smpi delete, and try buat update (@app.put)
